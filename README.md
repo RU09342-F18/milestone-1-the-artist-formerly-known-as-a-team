@@ -19,6 +19,9 @@ For starters, the entire network of devices will look similar to the image below
 
 You will be responsible for picking a development boards as well as designing the proper driving circuitry for the RGB LED. There are no specified pins that need to be utilized, so it is up to your group to determine the proper pins for your application.
 
+#### RGB on the G2
+Your new boards have an RGB on board. As much as it would make life easy, part of the point of this Milestone is to look at interfacing these things to your boards. For this reason, you need to hook up your LED externally. If you find that the pins being used for the on-board RGB are really the only pins you can use, you can use jumpers to breakout to a breadboard.
+
 ### RGB Node
 
 Each of these RGB Nodes will be responsible for taking in a string of Hex values over the UART RX Line, using the 3 least significant bytes as their own RGB values. These RGB values then need to be converted and transformed into Duty Cycles to replicate the proper color. Since the incoming string may be at most 80 bytes, the remaining string after removing the 3 least significant bytes needs to be transmitted over the UART TX line to the next node.
