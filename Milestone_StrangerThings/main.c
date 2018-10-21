@@ -67,14 +67,60 @@
 //******************************************************************************
 
 /*Nicholas Klein
- *Created 10/10/18   Last Edit: 10/17/18
+ *Created 10/10/18   Last Edit: 10/20/18
  *Stranger Things RBG LED milestone 1
 */
 
 #include <msp430.h>
 
-char byte = 0;
-char length = 0;
+char length;
+char count;
+
+void setupLEDs () {
+    //RED 1.6
+    P1SEL |= BIT6;                           //Sets P1.6 as an I/O pin
+    P1SEL2 &= ~BIT6;                          //Sets P1.6 as an I/O pin
+    P1DIR |= BIT6;                            //Sets P1.6 as an output
+    //Green 2.1
+    P2SEL |= BIT1;                           //Sets P2.1 as an I/O pin
+    P2SEL2 &= ~BIT1;                          //Sets P2.1 as an I/O pin
+    P2DIR |= BIT1;                            //Sets P2.1 as an output
+    //Blue 2.4
+    P2SEL |= BIT4;                           //Sets P2.4 as an I/O pin
+    P2SEL2 &= ~BIT4;                          //Sets P2.4 as an I/O pin
+    P2DIR |= BIT4;                            //Sets P2.4 as an output
+}
+
+void setupTimers() {
+    TA0CTL = TASSEL_2 + ID_2 + MC_1 + TACLR;  //TA0 SM clock, up, div4, clear
+    TA1CTL = TASSEL_2 + ID_2 + MC_1 + TACLR;  //TA1 SM clock, up, div4, clear
+    TA0CCR0 = 255;                            //TA0 PWM is 1Mhz
+    TA1CCR0 = 255;                            //TA1 PWM is 1Mhz
+    TA0CCR1 = 0;                              //TA0 duty cycle is 0%
+    TA1CCR1 = 0;                              //TA1 duty cycle is 0%
+    TA1CCR2 = 0;                              //TA1 duty cycle is 0%
+    TA0CCTL1 = OUTMOD_3;                      //Clock is set/reset
+    TA1CCTL1 = OUTMOD_3;                      //Clock is set/reset
+    TA1CCTL2 = OUTMOD_3;                      //Clock is set/reset
+}
+
+void setupUART() {
+    DCOCTL = 0;                               // Select lowest DCOx and MODx settings
+    BCSCTL1 = CALBC1_1MHZ;                    // Set DCO
+    DCOCTL = CALDCO_1MHZ;
+
+    //setup rx and tx
+    P1SEL = BIT1 + BIT2 ;                     // P1.1 = RXD, P1.2=TXD
+    P1SEL2 = BIT1 + BIT2 ;                    // P1.1 = RXD, P1.2=TXD
+
+    UCA0CTL1 |= UCSSEL_2;                     // SMCLK
+    UCA0BR0 = 104;                            // 1MHz 9600
+    UCA0BR1 = 0;                              // 1MHz 9600
+    UCA0MCTL = UCBRS0;                        // Modulation UCBRSx = 1
+    UCA0CTL1 &= ~UCSWRST;                     // **Initialize USCI state machine**
+    IE2 |= UCA0RXIE;                          // Enable USCI_A0 RX interrupt
+    UC0IE |= UCA0RXIE;                        // Enable UART based interrupt
+}
 
 int main(void)
 {
@@ -83,87 +129,49 @@ int main(void)
   {
     while(1);                               // do not load, trap CPU!!
   }
-  DCOCTL = 0;                               // Select lowest DCOx and MODx settings
-  BCSCTL1 = CALBC1_1MHZ;                    // Set DCO
-  DCOCTL = CALDCO_1MHZ;
-  //setup rx and tx
-  P1SEL = BIT1 + BIT2 ;                     // P1.1 = RXD, P1.2=TXD
-  P1SEL2 = BIT1 + BIT2 ;                    // P1.1 = RXD, P1.2=TXD
+  setupUART();
+  setupTimers();
+  setupLEDs();
 
-  //Timer Setup
-  TA0CTL = TASSEL_2 + ID_2 + MC_1 + TACLR;  //TA0 SM clock, up, div4, clear
-  TA1CTL = TASSEL_2 + ID_2 + MC_1 + TACLR;  //TA1 SM clock, up, div4, clear
-  TA0CCR0 = 255;                            //TA0 PWM is 1Mhz
-  TA1CCR0 = 255;                            //TA1 PWM is 1Mhz
-  TA0CCR1 = 0;                              //TA0 duty cycle is 0%
-  TA1CCR1 = 0;                              //TA1 duty cycle is 0%
-  TA1CCR2 = 0;                              //TA1 duty cycle is 0%
-  TA0CCTL1 = OUTMOD_3;                      //Clock is set/reset
-  TA1CCTL1 = OUTMOD_3;                      //Clock is set/reset
-  TA1CCTL2 = OUTMOD_3;                      //Clock is set/reset
-
-  //UART Setup
-  UCA0CTL1 |= UCSSEL_2;                     // SMCLK
-  UCA0BR0 = 104;                            // 1MHz 9600
-  UCA0BR1 = 0;                              // 1MHz 9600
-  UCA0MCTL = UCBRS0;                        // Modulation UCBRSx = 1
-  UCA0CTL1 &= ~UCSWRST;                     // **Initialize USCI state machine**
-  IE2 |= UCA0RXIE;                          // Enable USCI_A0 RX interrupt
-  UC0IE |= UCA0RXIE;                        // Enable UART based interrupt
-
+  //Setup UART LED
   P1DIR |= BIT0;                            //Sets P1.0 as an output
   P1OUT &= ~BIT0;                           //Clears P1.0
-
-  //LED Setup
-  //RED 1.6
-  P1SEL |= BIT6;                           //Sets P1.6 as an I/O pin
-  P1SEL2 &= ~BIT6;                          //Sets P1.6 as an I/O pin
-  P1DIR |= BIT6;                            //Sets P1.6 as an output
-  //Green 2.1
-  P2SEL |= BIT1;                           //Sets P2.1 as an I/O pin
-  P2SEL2 &= ~BIT1;                          //Sets P2.1 as an I/O pin
-  P2DIR |= BIT1;                            //Sets P2.1 as an output
-  //Blue 2.4
-  P2SEL |= BIT4;                           //Sets P2.4 as an I/O pin
-  P2SEL2 &= ~BIT4;                          //Sets P2.4 as an I/O pin
-  P2DIR |= BIT4;                            //Sets P2.4 as an output
 
   __bis_SR_register(LPM0_bits + GIE);       // Enter LPM0, interrupts enabled
 }
 
 //  Echo back RXed character, confirm TX buffer is ready first
 #pragma vector=USCIAB0RX_VECTOR
-__interrupt void USCI0RX_ISR(void)
-{
+__interrupt void USCI0RX_ISR(void) {
+    P1OUT |= BIT0;              // LED shows if UART is active
+    UC0IE |= UCA0TXIE;          // TX interrupt set
+    char input = UCA0RXBUF;     // Stores the input
 
-  //while (!(IFG2&UCA0TXIFG));                //USCI_A0 TX buffer ready?
-    char input = UCA0RXBUF;                    //TX -> RXed character
-  P1OUT |= BIT0;                            //LED shows if UART is active
-  UC0IE |= UCA0TXIE;                        //TX interrupt set
-  switch (byte) {
-      case 0:
-          length = input;
-          if (input >= 8) {                 //Sends the next board the packet length
-              UCA0TXBUF = input - 3;
-          }
-      case 1:
-          TA0CCR1 = input;
-      case 2:
-          TA1CCR1 = input;
-      case 3:
-          TA1CCR2 = input;
-      default:
-          if (length >= 8) {                         //Sends the rest of the packet
-              UCA0TXBUF = input;
-          }
-  if (byte <= 3) {
-      byte++;
-  }
-  else {
-      byte = 0;
-  }
-  P1OUT |= BIT0;                            //LED shuts off
-  }
+    if (count == 0){
+        count = input;
+        length = input;
+        if (input >= 8) {       // sends the next node the packet length
+            UCA0TXBUF = input - 3;
+        }
+    } else if (length - count == 1){
+        TA0CCR1 = input;        // Sets red LED duty cycle
+    } else if (length - count == 2){
+        TA1CCR1 = input;        // Sets green LED duty cycle
+    } else if (length - count == 3){
+        TA1CCR2 = input;        // Sets blue LED duty cycle
+    } else {
+        if (length >= 8) {      //Each unused bit it transmitted
+            UCA0TXBUF = input;
+        }
+    }
+
+    if ((0 - count) <= length) {
+        count--;                // Decrements counter to differentiate which bytes to send and which to use
+    }
+    else {
+        count = 0;              // Resets counter after packet is done
+    }
+    P1OUT &= ~BIT0;             // Turns off onboard LED
 }
 
 #pragma vector=USCIAB0TX_VECTOR
